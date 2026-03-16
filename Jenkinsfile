@@ -35,7 +35,7 @@ pipeline {
         git clone https://github.com/abhigyan-mohanta/k8s-gitops-delivery-platform.git
         cd k8s-gitops-delivery-platform/apps/task-api
 
-        sed -i "s|image:.*|image: $IMAGE:$BUILD_NUMBER|" deployment.yaml
+        sed -i "s|image:.*|image: $IMAGE:$BUILD_NUMBER|" rollout.yaml
 
         git config user.email "ci@jenkins"
         git config user.name "jenkins"

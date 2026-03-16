@@ -14,10 +14,19 @@ pipeline {
     }
 
     stage('Push Image') {
-      steps {
-        sh 'docker push $IMAGE:$BUILD_NUMBER'
-      }
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+        )]) {
+            sh '''
+            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+            docker push docker.io/abhigyanmohanta/task-api:1
+            '''
+        }
     }
+}
 
     stage('Update GitOps Repo') {
       steps {

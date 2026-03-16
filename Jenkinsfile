@@ -43,15 +43,19 @@ stage('Update GitOps Repo') {
     withCredentials([usernamePassword(
       credentialsId: 'github',
       usernameVariable: 'GIT_USER',
-      passwordVariable: 'GIT_PASS'
+      passwordVariable: 'GIT_TOKEN'
     )]) {
 
       sh '''
-      rm -rf k8s-gitops-delivery-platform
+      rm -rf gitops
 
-      git clone https://$GIT_USER:$GIT_PASS@github.com/abhigyan-mohanta/k8s-gitops-delivery-platform.git
+      git clone https://github.com/abhigyan-mohanta/k8s-gitops-delivery-platform.git gitops
 
-      cd k8s-gitops-delivery-platform/apps/task-api
+      cd gitops
+
+      git remote set-url origin https://$GIT_USER:$GIT_TOKEN@github.com/abhigyan-mohanta/k8s-gitops-delivery-platform.git
+
+      cd apps/task-api
 
       sed -i "s|image:.*|image: $IMAGE:$BUILD_NUMBER|" rollout.yaml
 
@@ -61,7 +65,7 @@ stage('Update GitOps Repo') {
       git add .
       git commit -m "update image $BUILD_NUMBER"
 
-      git push
+      git push origin main
       '''
     }
   }

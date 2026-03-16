@@ -7,35 +7,68 @@ pipeline {
 
   stages {
 
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
     stage('Build Image') {
       steps {
-        sh 'docker build -t $IMAGE:$BUILD_NUMBER .'
+        sh '''
+        docker build -t $IMAGE:$BUILD_NUMBER .
+        '''
       }
     }
 
     stage('Push Image') {
       steps {
-        sh 'docker push $IMAGE:$BUILD_NUMBER'
+        withCredentials([usernamePassword(
+          credentialsId: 'dockerhub',
+          usernameVariable: 'DOCKER_USER',
+          passwordVariable: 'DOCKER_PASS'
+        )]) {
+          sh '''
+          echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+          docker push $IMAGE:$BUILD_NUMBER
+          docker logout
+          '''
+        }
       }
     }
 
     stage('Update GitOps Repo') {
       steps {
-        sh '''
-        git clone https://github.com/abhigyan-mohanta/k8s-gitops-delivery-platform.git
-        cd k8s-gitops-delivery-platform/apps/task-api
+        withCredentials([usernamePassword(
+          credentialsId: 'github',
+          usernameVariable: 'GIT_USER',
+          passwordVariable: 'GIT_TOKEN'
+        )]) {
 
-        sed -i "s|image:.*|image: $IMAGE:$BUILD_NUMBER|" deployment.yaml
+          sh '''
+          rm -rf gitops
 
-        git config user.email "ci@jenkins"
-        git config user.name "jenkins"
+          git clone https://github.com/abhigyan-mohanta/k8s-gitops-delivery-platform.git gitops
 
-        git commit -am "update image $BUILD_NUMBER"
-        git push
-        '''
+          cd gitops
+
+          git remote set-url origin https://$GIT_USER:$GIT_TOKEN@github.com/abhigyan-mohanta/k8s-gitops-delivery-platform.git
+
+          cd apps/task-api
+
+          sed -i "s|image:.*|image: $IMAGE:$BUILD_NUMBER|" rollout.yaml
+
+          git config user.email "ci@jenkins"
+          git config user.name "jenkins"
+
+          git add .
+          git commit -m "update image $BUILD_NUMBER"
+
+          git push origin main
+          '''
+        }
       }
     }
 
   }
 }
-

@@ -1,7 +1,7 @@
-from flask import Flask
+from flask import Flask, Response
 import socket
 import os
-from prometheus_client import Counter, generate_latest
+from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
 
 app = Flask(__name__)
 
@@ -18,6 +18,6 @@ def home():
 
 @app.route("/metrics")
 def metrics():
-    return generate_latest()
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
 app.run(host="0.0.0.0", port=5000)
